@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 void main() {
   runApp(const MyApp());
-}
+}dasawdawss
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -95,8 +95,8 @@ class _MyHomePageState extends State<MyHomePage> {
           // wireframe for each widget.
           mainAxisAlignment: .center,
           children: [
-            const Text('You have pushed the button this many times:'),
-            const Text('Prueba de texto 1')
+            const Text('Centro de plantas'),
+            const Text('Aquí podrás monitorear las condiciones de tus plantas y crear nuevos registros.'),
 
 //-----------------------------------------------------------------
             //Text(
