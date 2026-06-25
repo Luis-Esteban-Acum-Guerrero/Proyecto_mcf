@@ -1,4 +1,9 @@
+
+import 'main.dart';
 import 'package:flutter/material.dart';
+
+
+
 
 class CrearRegistroPage extends StatefulWidget {
   const CrearRegistroPage({super.key});
@@ -74,6 +79,18 @@ class _CrearRegistroPageState extends State<CrearRegistroPage> {
             Text('Bluetooth ingresado: $bluetooth'),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const MyApp(),
+            ),
+          );
+        },
+        tooltip: 'Finalizar Registro',
+        child: const Icon(Icons.check),
       ),
     );
   }
