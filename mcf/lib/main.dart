@@ -1,31 +1,21 @@
+// Flutter Demo Home Page
 import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:provider/provider.dart';
+import 'bluetooth_service.dart';
 import 'crear_registro.dart';
+import 'monitor_page.dart';
+import 'plant_provider.dart';
 
-final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-    FlutterLocalNotificationsPlugin();
-
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  // Inicialización del plugin
-  const AndroidInitializationSettings androidSettings =
-      AndroidInitializationSettings('@mipmap/ic_launcher');
-
-  const InitializationSettings settings =
-      InitializationSettings(
-    android: androidSettings,
+void main() {
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => BleController()),
+        ChangeNotifierProvider(create: (_) => PlantProvider()),
+      ],
+      child: const MyApp(),
+    ),
   );
-
-  await flutterLocalNotificationsPlugin.initialize(settings);
-
-  // Solicitar permisos (Android 13+)
-  await flutterLocalNotificationsPlugin
-      .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>()
-      ?.requestNotificationsPermission();
-
-  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -34,7 +24,6 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
       title: 'EcoGuard',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
@@ -47,108 +36,154 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class MyHomePage extends StatefulWidget {
+class MyHomePage extends StatelessWidget {
   const MyHomePage({super.key, required this.title});
-
   final String title;
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  Widget build(BuildContext context) {
+    final plants = context.watch<PlantProvider>().plants;
+
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: Text(title),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.sensors),
+            tooltip: "Monitor de sensores",
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const MonitorPage()),
+            ),
+          ),
+        ],
+      ),
+      body: plants.isEmpty
+          ? const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.eco, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text('Centro de plantas',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  SizedBox(height: 8),
+                  Text(
+                    'Presiona + para agregar tu primera planta.',
+                    style: TextStyle(color: Colors.grey),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            )
+          : Padding(
+              padding: const EdgeInsets.all(12),
+              child: GridView.builder(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 0.85,
+                ),
+                itemCount: plants.length,
+                itemBuilder: (context, index) {
+                  final plant = plants[index];
+                  return _PlantCard(plant: plant, index: index);
+                },
+              ),
+            ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final result = await Navigator.push<Map<String, String>>(
+            context,
+            MaterialPageRoute(builder: (_) => const CrearRegistroPage()),
+          );
+          if (result != null) {
+            context.read<PlantProvider>().addPlant(result);
+          }
+        },
+        tooltip: 'Agregar planta',
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  @override
-  void initState() {
-    super.initState();
+class _PlantCard extends StatelessWidget {
+  final Map<String, String> plant;
+  final int index;
+  const _PlantCard({required this.plant, required this.index});
 
-    Future.delayed(const Duration(seconds: 1), () {
-      mostrarNotificacion(
-        titulo: 'EcoGuard',
-        mensaje: 'Bienvenido al centro de monitoreo de plantas',
-      );
-    });
-  }
-
-  Future<void> mostrarNotificacion({
-    required String titulo,
-    required String mensaje,
-  }) async {
-    const AndroidNotificationDetails androidDetails =
-        AndroidNotificationDetails(
-      'ecoguard_channel',
-      'EcoGuard Notifications',
-      channelDescription: 'Canal de notificaciones de EcoGuard',
-      importance: Importance.max,
-      priority: Priority.high,
-    );
-
-    const NotificationDetails notificationDetails =
-        NotificationDetails(
-      android: androidDetails,
-    );
-
-    await flutterLocalNotificationsPlugin.show(
-      0,
-      titulo,
-      mensaje,
-      notificationDetails,
-    );
+  // Color de fondo según el tipo de planta
+  Color _cardColor(String tipo) {
+    switch (tipo.toLowerCase()) {
+      case 'árbol':
+      case 'arbol':   return const Color(0xFFE8F5E9);
+      case 'hierba':  return const Color(0xFFF1F8E9);
+      case 'flor':    return const Color(0xFFFCE4EC);
+      case 'cactus':  return const Color(0xFFFFF8E1);
+      default:        return const Color(0xFFE3F2FD);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor:
-            Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
-      ),
-      body: Center(
+    final nombre    = plant['nombre']    ?? 'Sin nombre';
+    final tipo      = plant['tipo']      ?? 'Sin tipo';
+    final bluetooth = plant['bluetooth'] ?? 'Sin dirección';
+
+    return Card(
+      elevation: 3,
+      color: _cardColor(tipo),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(
-              Icons.local_florist,
-              size: 100,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Ícono y botón eliminar
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Icon(Icons.eco, size: 36, color: Colors.green),
+                IconButton(
+                  icon: const Icon(Icons.close, size: 18, color: Colors.grey),
+                  onPressed: () => context.read<PlantProvider>().removePlant(index),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              ],
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 8),
+            // Nombre
             Text(
-              'Centro de plantas',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+              nombre,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              overflow: TextOverflow.ellipsis,
             ),
-            SizedBox(height: 10),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 30),
-              child: Text(
-                'Aquí podrás monitorear las condiciones de tus plantas y crear nuevos registros.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16),
+            const SizedBox(height: 4),
+            // Tipo
+            Row(children: [
+              const Icon(Icons.local_florist, size: 14, color: Colors.grey),
+              const SizedBox(width: 4),
+              Text(tipo, style: const TextStyle(fontSize: 13, color: Colors.grey)),
+            ]),
+            const SizedBox(height: 4),
+            // Bluetooth
+            Row(children: [
+              const Icon(Icons.bluetooth, size: 14, color: Colors.grey),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  bluetooth,
+                  style: const TextStyle(fontSize: 11, color: Colors.grey),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ),
+            ]),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        tooltip: 'Agregar Registro',
-        child: const Icon(Icons.add),
-        onPressed: () async {
-          await mostrarNotificacion(
-            titulo: 'EcoGuard',
-            mensaje: 'Abriendo formulario de registro',
-          );
-
-          if (!mounted) return;
-
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const CrearRegistroPage(),
-            ),
-          );
-        },
       ),
     );
   }

@@ -1,9 +1,4 @@
-
-import 'main.dart';
 import 'package:flutter/material.dart';
-
-
-
 
 class CrearRegistroPage extends StatefulWidget {
   const CrearRegistroPage({super.key});
@@ -13,12 +8,15 @@ class CrearRegistroPage extends StatefulWidget {
 }
 
 class _CrearRegistroPageState extends State<CrearRegistroPage> {
-  String nombre = '';
-  String tipo = '';
+  String nombre    = '';
+  String tipo      = '';
   String bluetooth = '';
 
   @override
   Widget build(BuildContext context) {
+    // El botón Guardar solo se activa si nombre y tipo tienen texto
+    final bool puedeGuardar = nombre.trim().isNotEmpty && tipo.trim().isNotEmpty;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Crear Registro'),
@@ -26,71 +24,48 @@ class _CrearRegistroPageState extends State<CrearRegistroPage> {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('Ingrese el nombre de la planta:'),
-
+            const Text('Nombre de la planta:'),
             TextField(
-              onChanged: (texto) {
-                setState(() {
-                  nombre = texto;
-                });
-              },
-              decoration: const InputDecoration(
-                hintText: 'Ej: pedro',
-              ),
+              onChanged: (v) => setState(() => nombre = v),
+              decoration: const InputDecoration(hintText: 'Ej: Pedro'),
             ),
 
             const SizedBox(height: 20),
 
-            Text('Nombre ingresado: $nombre'),
-
-            const Text('Ingrese el tipo de planta:'),
-
+            const Text('Tipo de planta:'),
             TextField(
-              onChanged: (texto) {
-                setState(() {
-                  tipo = texto;
-                });
-              },
-              decoration: const InputDecoration(
-                hintText: 'Ej: hierba',
-              ),
+              onChanged: (v) => setState(() => tipo = v),
+              decoration: const InputDecoration(hintText: 'Ej: Hierba, Flor, Árbol...'),
             ),
 
             const SizedBox(height: 20),
 
-            Text('Tipo ingresado: $tipo'),
-
-            const Text('Ingrese la dirección Bluetooth:'),
-
+            const Text('Dirección Bluetooth (opcional):'),
             TextField(
-              onChanged: (texto) {
-                setState(() {
-                  bluetooth = texto;
-                });
-              },
-              decoration: const InputDecoration(
-                hintText: 'Ej: AA:BB:CC:DD:EE:FF',
-              ),
+              onChanged: (v) => setState(() => bluetooth = v),
+              decoration: const InputDecoration(hintText: 'Ej: AA:BB:CC:DD:EE:FF'),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 32),
 
-            Text('Bluetooth ingresado: $bluetooth'),
+            // Botón guardar — devuelve los datos a main.dart
+            ElevatedButton.icon(
+              onPressed: puedeGuardar
+                  ? () {
+                      Navigator.pop(context, {
+                        'nombre':    nombre.trim(),
+                        'tipo':      tipo.trim(),
+                        'bluetooth': bluetooth.trim(),
+                      });
+                    }
+                  : null,
+              icon: const Icon(Icons.save),
+              label: const Text('Guardar planta'),
+            ),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const MyApp(),
-            ),
-          );
-        },
-        tooltip: 'Finalizar Registro',
-        child: const Icon(Icons.check),
       ),
     );
   }
